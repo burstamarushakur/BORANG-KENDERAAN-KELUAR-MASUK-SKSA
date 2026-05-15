@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { callGasApi } from './lib/api';
 import {
   ChevronLeft,
@@ -13,6 +13,32 @@ import {
   X,
   Clock
 } from 'lucide-react';
+
+function InputField({ label, name, required, icon, placeholder, value, onChange }) {
+  return (
+    <div className="space-y-1.5">
+      <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
+        {label} {required && <span className="text-cyan-400">*</span>}
+      </label>
+
+      <div className="relative">
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 flex items-center pointer-events-none">
+          {icon && React.cloneElement(icon, { className: 'w-5 h-5' })}
+        </div>
+
+        <input
+          type="text"
+          name={name}
+          required={required}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder || ''}
+          className="w-full bg-slate-900 border border-slate-700 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 rounded-xl pl-12 pr-4 py-3 outline-none text-white uppercase transition-all placeholder-slate-600 text-sm font-bold"
+        />
+      </div>
+    </div>
+  );
+}
 
 export default function App() {
   const [view, setView] = useState('home');
@@ -63,7 +89,10 @@ export default function App() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: toUpper(value) }));
+    setFormData(prev => ({
+      ...prev,
+      [name]: toUpper(value)
+    }));
   };
 
   const handleRegisterSubmit = async (e) => {
@@ -101,6 +130,7 @@ export default function App() {
 
   const loadActiveVisitors = async () => {
     setIsLoadingVisitors(true);
+    setErrorMsg('');
 
     try {
       const result = await callGasApi('listActiveVisitors', {});
@@ -147,31 +177,13 @@ export default function App() {
     }
   };
 
-  const InputField = ({ label, name, required, icon, placeholder }) => (
-    <div className="space-y-1.5">
-      <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
-        {label} {required && <span className="text-cyan-400">*</span>}
-      </label>
-
-      <div className="relative">
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 flex items-center pointer-events-none">
-          {icon && React.cloneElement(icon, { className: 'w-5 h-5' })}
-        </div>
-
-        <input
-          type="text"
-          name={name}
-          required={required}
-          value={formData[name]}
-          onChange={handleInputChange}
-          placeholder={placeholder || ''}
-          className="w-full bg-slate-900 border border-slate-700 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 rounded-xl pl-12 pr-4 py-3 outline-none text-white uppercase transition-all placeholder-slate-600 text-sm font-bold"
-        />
-      </div>
-    </div>
+  const filteredList = activeVisitors.filter(v =>
+    (v.nama_pelawat || '').toUpperCase().includes(searchQuery.toUpperCase()) ||
+    (v.no_kenderaan || '').toUpperCase().includes(searchQuery.toUpperCase()) ||
+    (v.tujuan || '').toUpperCase().includes(searchQuery.toUpperCase())
   );
 
-  const HomeView = () => (
+  const renderHomeView = () => (
     <div className="w-full max-w-sm space-y-8">
       <div className="text-center space-y-6">
         <div className="inline-block p-4 bg-white rounded-3xl shadow-xl shadow-cyan-900/20">
@@ -230,14 +242,14 @@ export default function App() {
 
         <div className="pt-8 border-t border-slate-800 text-center">
           <p className="text-[10px] text-slate-500 font-mono tracking-tighter">
-            APP VERSION 1.0.5 • DIRECT GAS API
+            APP VERSION 1.0.6 • DIRECT GAS API
           </p>
         </div>
       </div>
     </div>
   );
 
-  const RegistrationFormView = () => (
+  const renderRegistrationFormView = () => (
     <div className="flex-1 flex flex-col h-full w-full max-w-sm mx-auto overflow-y-auto py-8">
       <div className="flex items-center justify-between mb-8 cursor-pointer group" onClick={goHome}>
         <button className="text-slate-400 group-hover:text-cyan-400 transition-colors flex items-center text-sm font-bold tracking-widest uppercase">
@@ -264,10 +276,41 @@ export default function App() {
         )}
 
         <form onSubmit={handleRegisterSubmit} className="space-y-4">
-          <InputField label="Nama Pelawat" name="nama_pelawat" icon={<User />} required />
-          <InputField label="No Kenderaan" name="no_kenderaan" icon={<CarFront />} required />
-          <InputField label="Tujuan" name="tujuan" icon={<FileText />} required />
-          <InputField label="Jumpa Siapa" name="jumpa_siapa" icon={<Users />} required />
+          <InputField
+            label="Nama Pelawat"
+            name="nama_pelawat"
+            icon={<User />}
+            required
+            value={formData.nama_pelawat}
+            onChange={handleInputChange}
+          />
+
+          <InputField
+            label="No Kenderaan"
+            name="no_kenderaan"
+            icon={<CarFront />}
+            required
+            value={formData.no_kenderaan}
+            onChange={handleInputChange}
+          />
+
+          <InputField
+            label="Tujuan"
+            name="tujuan"
+            icon={<FileText />}
+            required
+            value={formData.tujuan}
+            onChange={handleInputChange}
+          />
+
+          <InputField
+            label="Jumpa Siapa"
+            name="jumpa_siapa"
+            icon={<Users />}
+            required
+            value={formData.jumpa_siapa}
+            onChange={handleInputChange}
+          />
 
           <div className="space-y-1.5 pt-2">
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
@@ -302,7 +345,7 @@ export default function App() {
     </div>
   );
 
-  const RegisterSuccessView = () => (
+  const renderRegisterSuccessView = () => (
     <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-8 w-full max-w-sm mx-auto">
       <div className="w-20 h-20 bg-cyan-500/20 rounded-full flex items-center justify-center text-cyan-400">
         <CheckCircle2 className="w-10 h-10" />
@@ -355,13 +398,7 @@ export default function App() {
     </div>
   );
 
-  const filteredList = activeVisitors.filter(v =>
-    (v.nama_pelawat || '').toUpperCase().includes(searchQuery.toUpperCase()) ||
-    (v.no_kenderaan || '').toUpperCase().includes(searchQuery.toUpperCase()) ||
-    (v.tujuan || '').toUpperCase().includes(searchQuery.toUpperCase())
-  );
-
-  const CheckoutView = () => (
+  const renderCheckoutView = () => (
     <div className="w-full max-w-2xl mx-auto h-full flex flex-col py-8">
       <div className="flex items-center justify-between mb-6">
         <button
@@ -485,10 +522,10 @@ export default function App() {
   return (
     <div className="h-screen w-full bg-slate-950 font-sans text-slate-200 overflow-hidden">
       <div className="h-full w-full flex items-center justify-center p-6 overflow-y-auto">
-        {view === 'home' && <HomeView />}
-        {view === 'register' && <RegistrationFormView />}
-        {view === 'register-success' && <RegisterSuccessView />}
-        {view === 'checkout' && <CheckoutView />}
+        {view === 'home' && renderHomeView()}
+        {view === 'register' && renderRegistrationFormView()}
+        {view === 'register-success' && renderRegisterSuccessView()}
+        {view === 'checkout' && renderCheckoutView()}
       </div>
 
       {selectedVisitor && (
